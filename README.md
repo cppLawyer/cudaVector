@@ -1,9 +1,10 @@
 # cudaVector
 
-Vector Datastructure for Nvidia Cuda Devices.
-Optimized all memory is allocated on Cuda Device for optimal use.
-Usable in device code
-maintainer of cudacpp Library
+- Vector Datastructure for Nvidia Cuda Devices.
+- Optimized all memory is allocated on Cuda Device for optimal use.
+- Usable in device code
+- maintainer of cudacpp Library
+
 
 EXAMPLE:
 

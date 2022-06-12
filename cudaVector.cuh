@@ -1,7 +1,18 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include <stdio.h>
+#include <iostream>
 #include <cuda/std/iterator>
+
+/*
+-- cppLawyer --
+
+- cudaVector
+- Remove if-statements, if you know for sure you will not make such errors, if yes remove IF-statements with comment: "//**REM**"
+- IF-statements are expensive on GPU so it will increase performance.
+
+*/
+
 
 #ifdef __CUDACC__
 #define CUDA_CALLABLE_MEMBER __host__ __device__
@@ -23,9 +34,35 @@ namespace cudacpp {
 
 		CUDA_CALLABLE_MEMBER cudaVector() = default;
 		CUDA_CALLABLE_MEMBER cudaVector(uint_fast64_t allocSize) :mainMemory(new T[allocSize]) {}
-		CUDA_CALLABLE_MEMBER cudaVector(cudaVector&& lVector) : SIZE(lVector->SIZE), mainMemory(lVector->mainMemory) {
-			lVector->mainMemory = nullptr;
-			lVector->SIZE = 0;
+		CUDA_CALLABLE_MEMBER cudaVector(cudaVector<T>&& lVector) : SIZE(lVector.SIZE), mainMemory(lVector.mainMemory) {
+			lVector.mainMemory = nullptr;
+			lVector.SIZE = 0;
+		}
+		CUDA_CALLABLE_MEMBER cudaVector(cudaVector<T>& lVector) : SIZE(lVector.SIZE),mainMemory(new T[SIZE]) {
+			memcpy((void*)mainMemory, (void*)lVector.mainMemory, sizeof(T) * SIZE);
+		}
+
+		CUDA_CALLABLE_MEMBER void operator=(cudaVector<T>& lVector) {
+			if (SIZE)//**REM**
+				delete[] mainMemory;
+			SIZE = lVector.SIZE;
+			mainMemory = new T[SIZE];
+			memcpy((void*)mainMemory, (void*)lVector.mainMemory, sizeof(T) * SIZE);
+		}
+		CUDA_CALLABLE_MEMBER void operator=(cudaVector<T>&& lVector) {
+			SIZE = lVector.SIZE;
+			lVector.SIZE = 0;
+			mainMemory = lVector.mainMemory;
+			lVector.mainMemory = nullptr;
+		}
+		CUDA_CALLABLE_MEMBER void operator+=(cudaVector<T>& lVector) {
+			memcpy((void*)tempMemory, (void*)lVector.mainMemory, sizeof(T) * SIZE);
+			delete[] mainMemory;
+			mainMemory = new T[(SIZE + lVector.SIZE)];
+			memcpy((void*)mainMemory, (void*)tempMemory, sizeof(T) * SIZE);
+			delete[] tempMemory;
+			memcpy((void*)(mainMemory + SIZE), (void*)lVector.mainMemory, sizeof(T) * lVector.SIZE);
+			SIZE += lVector.SIZE;
 		}
 		CUDA_CALLABLE_MEMBER inline constexpr void clear() noexcept {
 			delete[] mainMemory;
@@ -33,7 +70,7 @@ namespace cudacpp {
 			SIZE = 0;
 		}
 		CUDA_CALLABLE_MEMBER inline constexpr void erase(const_iterator eraseBegin, const_iterator eraseEnd) noexcept {
-			if (eraseBegin >= eraseEnd)
+			if (eraseBegin >= eraseEnd)//**REM**
 				return;
 
 			uint_fast64_t startDistance = cuda::std::distance(begin(), eraseBegin);
@@ -44,7 +81,7 @@ namespace cudacpp {
 				delete[] mainMemory;
 				mainMemory = nullptr;
 				return;
-			}
+			}//**REM**
 
 			for (uint_fast64_t idx = 0; idx < endDistance; ++idx)
 				mainMemory[startDistance += idx] = mainMemory[startDistance + deleteDistance];
@@ -54,7 +91,7 @@ namespace cudacpp {
 
 		}
 		CUDA_CALLABLE_MEMBER inline constexpr void insert(const_iterator insertPos, T value) noexcept{
-			if (insertPos > end() || insertPos < begin())
+			if (insertPos > end() || insertPos < begin())//**REM**
 				return;
 
 			uint_fast64_t startDistance = cuda::std::distance(begin(), insertPos);
@@ -74,10 +111,6 @@ namespace cudacpp {
 
 		CUDA_CALLABLE_MEMBER inline constexpr T& operator[](uint_fast64_t index) noexcept {
 			return mainMemory[index];
-		}
-		CUDA_CALLABLE_MEMBER inline cudaVector(cudaVector& lVector) :SIZE(lVector->SIZE) {
-			for (uint_fast64_t idx = 0; idx < this->SIZE; ++idx)
-				this->mainMemory[idx] = lVector->mainMemory[idx];
 		}
 		CUDA_CALLABLE_MEMBER inline constexpr const_iterator begin() noexcept {
 			return mainMemory;
@@ -112,9 +145,9 @@ namespace cudacpp {
 
 		CUDA_CALLABLE_MEMBER inline constexpr void pop_back() noexcept {
 			if (SIZE == 0) {
-				printf("\nPopping empty Queue\n");
-				exit(-1); //popping empty Queue
-			}
+				printf("\nPopping empty Vector\n");
+				exit(-1); //popping empty Vector
+			}//**REM**
 			tempMemory = new T[SIZE];
 			memcpy((void*)tempMemory, (void*)mainMemory, sizeof(T) * SIZE);
 			delete[] mainMemory;
@@ -133,7 +166,8 @@ namespace cudacpp {
 		}
 
 		CUDA_CALLABLE_MEMBER inline ~cudaVector() noexcept {
-			delete[] mainMemory;
+			if(SIZE)//**REM**
+			  delete[] mainMemory;
 		}
 
 

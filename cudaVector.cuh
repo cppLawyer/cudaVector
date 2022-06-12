@@ -56,12 +56,13 @@ namespace cudacpp {
 			lVector.mainMemory = nullptr;
 		}
 		CUDA_CALLABLE_MEMBER void operator+=(cudaVector<T>& lVector) {
-			memcpy((void*)tempMemory, (void*)lVector.mainMemory, sizeof(T) * SIZE);
+			tempMemory = new T[SIZE];
+			memcpy((void*)tempMemory, (void*)mainMemory, sizeof(T) * SIZE);
 			delete[] mainMemory;
 			mainMemory = new T[(SIZE + lVector.SIZE)];
 			memcpy((void*)mainMemory, (void*)tempMemory, sizeof(T) * SIZE);
 			delete[] tempMemory;
-			memcpy((void*)(mainMemory + SIZE), (void*)lVector.mainMemory, sizeof(T) * lVector.SIZE);
+			memcpy((void*)end(), (void*)lVector.mainMemory, sizeof(T) * lVector.SIZE);
 			SIZE += lVector.SIZE;
 		}
 		CUDA_CALLABLE_MEMBER inline constexpr void clear() noexcept {
